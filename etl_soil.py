@@ -10,12 +10,12 @@ from factor_analyzer.factor_analyzer import calculate_bartlett_sphericity
 
 ## 1. Import dataframes
 # Import dataframe of soil_ICP
-soil_icp_df = pd.read_csv('C:/Users/Camilo/Downloads/General/Work/SoilNetLLC/Dataset/ETL/soil_ICP.csv')
+soil_icp_df = pd.read_csv('soil_ICP.csv')
 print(soil_icp_df)
 type(soil_icp_df)
 
 # Import dataframe of soil_HHXRF
-soil_hhxrf_df = pd.read_csv('C:/Users/Camilo/Downloads/General/Work/SoilNetLLC/Dataset/ETL/soil_HHXRF.csv')
+soil_hhxrf_df = pd.read_csv('soil_HHXRF.csv')
 print(soil_hhxrf_df)
 
 # -------------------------------------------------------------------------------------------------------------
@@ -102,7 +102,7 @@ for id, row in soil_icp_df.iterrows():
     icp_classification_df.loc[new_id] = new_row
 
 # Export icp_classification_df to a CSV file
-icp_classification_df.to_csv('C:/Users/Camilo/Downloads/General/Work/SoilNetLLC/Dataset/ETL/icp_classification_df.csv', index=False)
+icp_classification_df.to_csv('icp_classification_df.csv', index=False)
 print(icp_classification_df)
 
 # -----------------------------------------------------------------------------------------------------------
@@ -343,7 +343,7 @@ soil_mix_df_final = replace_zeros_with_real_data(soil_icp_df, soil_hhxrf_df, col
 
 # Show the corrected result with the real data
 soil_mix_df_final.head()
-soil_mix_df_final.to_csv('C:/Users/Camilo/Downloads/General/Work/SoilNetLLC/Dataset/ETL/soil_mix_df_final.csv', index=False)
+soil_mix_df_final.to_csv('soil_mix_df_final.csv', index=False)
 
 # --------------------------------------------------------------------------------------------------------------------
 ## 14. Checking if the new ICP values are in the range
@@ -393,7 +393,7 @@ for id, row in soil_mix_df_final.iterrows():
     icp_classification_mix_df.loc[new_id] = new_row
 
 # Export icp_classification_mix_df to a CSV file
-icp_classification_mix_df.to_csv('C:/Users/Camilo/Downloads/General/Work/SoilNetLLC/Dataset/ETL/icp_classification_mix_df.csv', index=False)
+icp_classification_mix_df.to_csv('icp_classification_mix_df.csv', index=False)
 print(icp_classification_mix_df)
 
 # -----------------------------------------------------------------------------------------------------------
