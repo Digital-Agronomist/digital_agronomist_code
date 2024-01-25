@@ -4,8 +4,8 @@ import numpy as np
 # -------------------------------------------------------------------------------------------------------------
 ## 1. Import dataframe
 
-# Import dataframe of Soil and Plant database - Master2.xlsx
-corn_v0 = pd.read_excel('Soil and Plant database - Master2.xlsx', sheet_name=3, header=1)
+# Import dataframe from Soil and Plant database - Master2.xlsx
+corn_v0 = pd.read_excel('plant_etl/Soil and Plant database - Master2.xlsx', sheet_name=3, header=1)
 
 # Remove non-useful columns
 corn_v0.drop(corn_v0.columns[2:33], axis=1, inplace=True)
@@ -74,4 +74,59 @@ extracted_columns = corn_filtered[columns_to_extract] # corn_filtered was define
 corn_df = pd.concat([corn_df, extracted_columns], axis=1)
 
 # Save dataframe as corn_df_v1 (first version)
-corn_df.to_csv('corn_df_v1.csv', index=False)
+corn_df.to_csv('plant_etl/corn_df_v1.csv', index=False)
+
+# -------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------break-----------------------------------------------------
+## 5. N, C, and C/N ratio extraction from Elementar sheet.
+
+# Import dataframe from Soil and Plant database - Master2.xlsx
+elementar_v0 = pd.read_excel('plant_etl/Soil and Plant database - Master2.xlsx', sheet_name=6, header=1)
+
+# Dictionary with old and new column names
+rename_elementar_columns = {
+    'N [%]': 'N',
+    'C [%]': 'C',
+    'C/N ratio': 'C/N'
+}
+
+# Rename columns in the dataframe
+elementar_v0.rename(columns=rename_elementar_columns, inplace=True)
+
+# -------------------------------------------------------------------------------------------------------------
+## 6. Extract samples information for elementar dataframe
+
+# Identify the second column
+sample_code_elementar = elementar_v0.columns[1]
+
+# Filter the rows where the second column starts with 'Corn'
+elementar_filtered = elementar_v0[elementar_v0[sample_code_elementar].str.startswith('Corn', na=False)]
+
+# Create a new DataFrame with these values
+elementar_df = pd.DataFrame(elementar_filtered[sample_code_elementar])
+
+# -------------------------------------------------------------------------------------------------------------
+## 7. Create "sample" and "rep" columns for elementar dataframe
+
+# Remove the first 7 characters from each entry in 'Name'
+elementar_df['Name'] = elementar_df['Name'].str[5:]
+
+# Extract the first characters from each entry in 'Name' and create the new columns 'sample' and 'rep'
+elementar_df['Name'] = elementar_df['Name'].str.strip()
+elementar_df['sample'] = elementar_df['Name'].str[:3]
+elementar_df['rep'] = elementar_df['Name'].str[6:7]
+
+# Drop the 'Name' column as it's the same for all rows and not needed
+elementar_df.drop('Name', axis=1, inplace=True)
+
+# Replace 'rep' with 3 and any empty strings or NaN with 0
+elementar_df['rep'] = elementar_df['rep'].replace('r', '3').replace('', '0').fillna('0')
+elementar_df['rep'] = elementar_df['rep'].replace('R', '3').replace('', '0')
+
+# Convert 'rep' and 'sample' to integers
+corn_df['rep'] = corn_df['rep'].astype(int)
+corn_df['sample'] = corn_df['sample'].astype(int)
+
+
+
+print(elementar_df)
