@@ -108,25 +108,62 @@ elementar_df = pd.DataFrame(elementar_filtered[sample_code_elementar])
 # -------------------------------------------------------------------------------------------------------------
 ## 7. Create "sample" and "rep" columns for elementar dataframe
 
-# Remove the first 7 characters from each entry in 'Name'
-elementar_df['Name'] = elementar_df['Name'].str[5:]
+# We use a regular expression to replace the unwanted parts of the string with ' '
+elementar_df['Name'] = elementar_df['Name'].str.replace(r'Corn\s+#?', '', regex=True)
 
 # Extract the first characters from each entry in 'Name' and create the new columns 'sample' and 'rep'
 elementar_df['Name'] = elementar_df['Name'].str.strip()
 elementar_df['sample'] = elementar_df['Name'].str[:3]
-elementar_df['rep'] = elementar_df['Name'].str[6:7]
+elementar_df['rep'] = elementar_df['Name'].str[3:6]
+
+elementar_df['sample'] = elementar_df['sample'].str.strip()
+elementar_df['rep'] = elementar_df['rep'].str.strip()
 
 # Drop the 'Name' column as it's the same for all rows and not needed
 elementar_df.drop('Name', axis=1, inplace=True)
 
-# Replace 'rep' with 3 and any empty strings or NaN with 0
-elementar_df['rep'] = elementar_df['rep'].replace('r', '3').replace('', '0').fillna('0')
-elementar_df['rep'] = elementar_df['rep'].replace('R', '3').replace('', '0')
+# Convert 'sample' to integers
+elementar_df['sample'] = elementar_df['sample'].astype(int)
 
-# Convert 'rep' and 'sample' to integers
-corn_df['rep'] = corn_df['rep'].astype(int)
-corn_df['sample'] = corn_df['sample'].astype(int)
+# -------------------------------------------------------------------------------------------------------------
+## 8. Extract the variables from the Elementar dataset and add them to the elementar_df dataframe.
 
+# Columns to extract
+elementar_columns_to_extract = ['N', 'C', 'C/N']
 
+# Extract the required columns
+elementar_extracted_columns = elementar_filtered[elementar_columns_to_extract] # elementar_filtered was defined in the line 103
 
-print(elementar_df)
+# Adding the extracted columns to elementar_df
+elementar_df = pd.concat([elementar_df, elementar_extracted_columns], axis=1)
+
+# Reset the index
+elementar_df.reset_index(drop=True, inplace=True)
+elementar_df.index = elementar_df.index + 1
+
+# Convert 'N', 'C', and 'C/N' to integers
+elementar_df['N'] = pd.to_numeric(elementar_df['N'], errors='coerce')
+elementar_df['C'] = pd.to_numeric(elementar_df['C'], errors='coerce')
+elementar_df['C/N'] = pd.to_numeric(elementar_df['C/N'], errors='coerce')
+
+# Save dataframe as elementar_df_v1 (first version)
+elementar_df.to_csv('plant_etl/elementar_df_v1.csv', index=False)
+
+# -------------------------------------------------------------------------------------------------------------
+## 9. Calculate the average of each sample.
+
+# Columns to group for average calculation
+columns_to_group = elementar_df.select_dtypes(include=[np.number]).columns.tolist()
+
+# Average calculation only on selected columns
+averages_df = elementar_df[columns_to_group].groupby('sample').mean().reset_index()
+averages_df.index = averages_df.index + 1
+
+# Save dataframe as averages_df_v1 (first version)
+averages_df.to_csv('plant_etl/averages_df_v1.csv', index=False)
+
+# -------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------break-----------------------------------------------------
+## 10.
+
+print(averages_df)

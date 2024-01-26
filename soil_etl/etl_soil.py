@@ -427,7 +427,7 @@ for element in elements:
     print(element_counts)
 
 # -----------------------------------------------------------------------------------------------------------------
-## 6. Bar charts for each element in new data frame
+## 16. Bar charts for each element in new data frame
 def plot_element_counts(element_counts, element_name):
     # Set figure size for better readability
     plt.figure(figsize=(12, 6))
