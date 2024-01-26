@@ -164,6 +164,11 @@ averages_df.to_csv('plant_etl/averages_df_v1.csv', index=False)
 
 # -------------------------------------------------------------------------------------------------------------
 # ---------------------------------------------------break-----------------------------------------------------
-## 10.
+## 10. Add averages_df values to corn_df
 
-print(averages_df)
+# Merging the dataframes on 'sample' using a left join
+# This will add the average values to each corresponding sample in corn_df
+corn_df = corn_df.merge(averages_df, on='sample', how='left')
+
+# Save dataframe as corn_df_v2 (second version)
+corn_df.to_csv('plant_etl/corn_df_v2.csv', index=False)
