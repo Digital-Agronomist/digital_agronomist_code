@@ -1,12 +1,12 @@
-import pandas as pd
+from factor_analyzer.factor_analyzer import calculate_kmo
+from factor_analyzer.factor_analyzer import calculate_bartlett_sphericity
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from sklearn.decomposition import FactorAnalysis
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-from factor_analyzer.factor_analyzer import calculate_kmo
-from factor_analyzer.factor_analyzer import calculate_bartlett_sphericity
 from sqlalchemy import create_engine
 
 # -------------------------------------------------------------------------------------------------------------
