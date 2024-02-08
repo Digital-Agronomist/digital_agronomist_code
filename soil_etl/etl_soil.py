@@ -1,22 +1,90 @@
-import pandas as pd
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+from sqlalchemy import create_engine
+
+from factor_analyzer.factor_analyzer import calculate_kmo
+from factor_analyzer.factor_analyzer import calculate_bartlett_sphericity
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from sklearn.decomposition import FactorAnalysis
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-from factor_analyzer.factor_analyzer import calculate_kmo
-from factor_analyzer.factor_analyzer import calculate_bartlett_sphericity
 
-## 1. Import dataframes
+
+# -------------------------------------------------------------------------------------------------------------
+## 0. Connect to the database and extract the data
+
+# Establish the connection
+# sqlalchemy uses a standard URL for connections: 
+# 'mysql+pymysql://<user>:<password>@<host>/<dbname>'
+DATABASE_CON = os.getenv('DATABASE_CON')
+
+# Create a SQLAlchemy engine
+engine = create_engine(DATABASE_CON)
+
+# Query to extract the soil_ICP dataframe
+soil_icp_df = pd.read_sql_query("""
+                        -- This query extracts the information necessary to shape the soil_icp dataframe
+                        
+                        SELECT sr.id, s.name, sr.sample, sr.rep,
+                            MAX(CASE WHEN n.symbol = 'B' THEN rn.value ELSE 0 END) AS B,
+                            MAX(CASE WHEN n.symbol = 'Mg' THEN rn.value ELSE 0 END) AS Mg,
+                            MAX(CASE WHEN n.symbol = 'P' THEN rn.value ELSE 0 END) AS P,
+                            MAX(CASE WHEN n.symbol = 'S' THEN rn.value ELSE 0 END) AS S,
+                            MAX(CASE WHEN n.symbol = 'K' THEN rn.value ELSE 0 END) AS K,
+                            MAX(CASE WHEN n.symbol = 'Ca' THEN rn.value ELSE 0 END) AS Ca,
+                            MAX(CASE WHEN n.symbol = 'Mn' THEN rn.value ELSE 0 END) AS Mn,
+                            MAX(CASE WHEN n.symbol = 'Fe' THEN rn.value ELSE 0 END) AS Fe,
+                            MAX(CASE WHEN n.symbol = 'Cu' THEN rn.value ELSE 0 END) AS Cu,
+                            MAX(CASE WHEN n.symbol = 'Zn' THEN rn.value ELSE 0 END) AS Zn
+                        FROM soil_results AS sr
+                        JOIN soils AS s ON sr.soil_id = s.id
+                        JOIN result_nutrients AS rn ON sr.id = rn.soil_result_id
+                        JOIN nutrients AS n ON rn.nutrient_id = n.id
+                        WHERE sr.analysis_method_id  = 2
+                        GROUP BY sr.id
+                        ORDER BY sr.id;""", engine)
+
+# Query to extract the soil_HHXRF dataframe
+soil_hhxrf_df = pd.read_sql_query("""
+                        -- This query extracts the information necessary to shape the soil_icp dataframe
+                        
+                        SELECT sr.id, s.name, sr.sample, sr.rep,
+                            MAX(CASE WHEN n.symbol = 'B' THEN rn.value ELSE 0 END) AS B,
+                            MAX(CASE WHEN n.symbol = 'Mg' THEN rn.value ELSE 0 END) AS Mg,
+                            MAX(CASE WHEN n.symbol = 'P' THEN rn.value ELSE 0 END) AS P,
+                            MAX(CASE WHEN n.symbol = 'S' THEN rn.value ELSE 0 END) AS S,
+                            MAX(CASE WHEN n.symbol = 'K' THEN rn.value ELSE 0 END) AS K,
+                            MAX(CASE WHEN n.symbol = 'Ca' THEN rn.value ELSE 0 END) AS Ca,
+                            MAX(CASE WHEN n.symbol = 'Mn' THEN rn.value ELSE 0 END) AS Mn,
+                            MAX(CASE WHEN n.symbol = 'Fe' THEN rn.value ELSE 0 END) AS Fe,
+                            MAX(CASE WHEN n.symbol = 'Cu' THEN rn.value ELSE 0 END) AS Cu,
+                            MAX(CASE WHEN n.symbol = 'Zn' THEN rn.value ELSE 0 END) AS Zn
+                        FROM soil_results AS sr
+                        JOIN soils AS s ON sr.soil_id = s.id
+                        JOIN result_nutrients AS rn ON sr.id = rn.soil_result_id
+                        JOIN nutrients AS n ON rn.nutrient_id = n.id
+                        WHERE sr.analysis_method_id  = 3
+                        GROUP BY sr.id
+                        ORDER BY sr.id;""", engine)
+
+# Correct index "id" of soil_hhxrf_df so that it starts at 1
+soil_hhxrf_df = soil_hhxrf_df.drop('id', axis=1)
+soil_hhxrf_df.reset_index(drop=True, inplace=True)
+soil_hhxrf_df.index += 1
+soil_hhxrf_df['id'] = soil_hhxrf_df.index
+
+# -------------------------------------------------------------------------------------------------------------
+## 1. Import dataframes from files
 # Import dataframe of soil_ICP
-soil_icp_df = pd.read_csv('soil_etl/soil_ICP.csv')
-print(soil_icp_df)
-type(soil_icp_df)
+# soil_icp_df = pd.read_csv('soil_etl/soil_ICP.csv')
 
 # Import dataframe of soil_HHXRF
-soil_hhxrf_df = pd.read_csv('soil_etl/soil_HHXRF.csv')
-print(soil_hhxrf_df)
+#soil_hhxrf_df = pd.read_csv('soil_etl/soil_HHXRF.csv')
 
 # -------------------------------------------------------------------------------------------------------------
 ## 2. Creation of a table of adequate ranges of nutrients
