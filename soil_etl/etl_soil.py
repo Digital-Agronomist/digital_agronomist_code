@@ -3,6 +3,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from sqlalchemy import create_engine
+from sqlalchemy import Column, Integer, String, Float, Numeric, DateTime, ForeignKey
+from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.sql import func
 
 from factor_analyzer.factor_analyzer import calculate_kmo
 from factor_analyzer.factor_analyzer import calculate_bartlett_sphericity
@@ -13,6 +16,144 @@ import seaborn as sns
 from sklearn.decomposition import FactorAnalysis
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+
+# -------------------------------------------------------------------------------------------------------------
+## Class declaration: database
+
+Base = declarative_base()
+
+class Nutrient(Base):
+    __tablename__ = 'nutrients'
+    id = Column(Integer(11), primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    symbol = Column(String(255), nullable=False)
+    nutrient_type = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    result_nutrients = relationship("ResultNutrient", back_populates="nutrient")
+
+class Plant(Base):
+    __tablename__ = 'plants'
+    id = Column(Integer(11), primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    plant_type = Column(String(255), nullable=False)
+    description = Column(String, nullable=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    plant_results = relationship("PlantResult", back_populates="plant")
+
+class AnalyticalInstrument(Base):
+    __tablename__ = 'analytical_instruments'
+    id = Column(Integer(11), primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    analytical_method_id = Column(Integer(11), ForeignKey('analytical_methods.id'))
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    analytical_method = relationship("AnalyticalMethod", back_populates="analytical_instruments")
+
+class AnalyticalMethod(Base):
+    __tablename__ = 'analytical_methods'
+    id = Column(Integer(11), primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    analytical_method_type = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    analytical_instruments = relationship("AnalyticalInstrument", back_populates="analytical_method")
+    plant_results = relationship("PlantResult", back_populates="analytical_method")
+    soil_results = relationship("SoilResult", back_populates="analytical_method")
+
+class Location(Base):
+    __tablename__ = 'locations'
+    id = Column(Integer(11), primary_key=True, autoincrement=True)
+    longitude = Column(String(255), nullable=False)
+    latitude = Column(String(255), nullable=False)
+    country = Column(String(255), nullable=False)
+    state = Column(String(255), nullable=False)
+    county = Column(String(255), nullable=False)
+    city = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    plant_results = relationship("PlantResult", back_populates="location")
+    soil_results = relationship("SoilResult", back_populates="location")
+
+class TimePeriod(Base):
+    __tablename__ = 'time_periods'
+    id = Column(Integer(11), primary_key=True, autoincrement=True)
+    start_date = Column(DateTime)
+    end_date = Column(DateTime)
+    period = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    plant_results = relationship("PlantResult", back_populates="time_period")
+    soil_results = relationship("SoilResult", back_populates="time_period")
+    weathers = relationship("Weather", back_populates="time_period")
+
+class PlantResult(Base):
+    __tablename_ = 'plant_results'
+    id = Column(Integer(11), primary_key=True, autoincrement=True)
+    level = Column(String(255), nullable=False)
+    pH = Column(Numeric(4,2), nullable=False)
+    humidity = Column(Numeric(5,2), nullable=False)
+    plant_id = Column(Integer(11), ForeignKey('plants.id'))
+    analysis_method_id = Column(Integer(11), ForeignKey('analytical_methods.id'))
+    location_id = Column(Integer(11), ForeignKey('locations.id'))
+    time_period_id = Column(Integer(11), ForeignKey('time_periods.id'))
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    plant = relationship("Plant", back_populates="plant_results")
+    analytical_method = relationship("AnalyticalMethod", back_populates="plant_results")
+    location = relationship("Location", back_populates="plant_results")
+    time_period = relationship("TimePeriod", back_populates="plant_results")
+    result_nutrients = relationship("ResultNutrient", back_populates="plant_result")
+
+class SoilResult(Base):
+    id = Column(Integer(11), primary_key=True, autoincrement=True)
+    soil_id = Column(Integer(11), ForeignKey('soils.id'))
+    analysis_method_id = Column(Integer(11), ForeignKey('analytical_methods.id'))
+    location_id = Column(Integer(11), ForeignKey('locations.id'))
+    time_period_id = Column(Integer(11), ForeignKey('time_periods.id'))
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    rep = Column(Integer(11), nullable=False)
+    sample = Column(String(255), nullable=False)
+    soil = relationship("Soil", back_populates="soil_results")
+    analytical_method = relationship("AnalyticalMethod", back_populates="soil_results")
+    location = relationship("Location", back_populates="soil_results")
+    time_period = relationship("TimePeriod", back_populates="soil_results")
+
+class Weather(Base):
+    id = Column(Integer(11), primary_key=True, autoincrement=True)
+    temperature = Column(Numeric(5,2), nullable=False)
+    solar_radiation = Column(Float, nullable=False)
+    photoperiod = Column(Integer(11), nullable=True)
+    air_humidity = Column(Numeric(5,2), nullable=False)
+    presipitation = Column(Numeric(4,1), nullable=False)
+    wind_speed = Column(Numeric(4,2), nullable=False)
+    observation_datetime = Column(DateTime, nullable=False)
+    time_period_id = Column(Integer(11), ForeignKey('time_periods.id'))
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    time_period = relationship("TimePeriod", back_populates="weathers")
+
+class Soil(Base):
+    id = Column(Integer(11), primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    soil_type = Column(String(255), nullable=False)
+    description = Column(String, nullable=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    soil_results = relationship("SoilResult", back_populates="soil")
+
+class ResultNutrient(Base):
+    id = Column(Integer(11), primary_key=True, autoincrement=True)
+    value = Column(Numeric(7,2), nullable=True)
+    soil_result_id = Column(Integer(11), ForeignKey('soil_results.id'))
+    plant_result_id = Column(Integer(11), ForeignKey('plant_results.id'))
+    nutrient_id = Column(Integer(11), ForeignKey('nutrients.id'))
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    nutrient = relationship("Nutrient", back_populates="result_nutrients")
+    plant_result = relationship("PlantResult", back_populates="result_nutrients")
 
 
 # -------------------------------------------------------------------------------------------------------------

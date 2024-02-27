@@ -1,4 +1,4 @@
-id,name,sample,rep,B,Mg,P,S,K,Ca,Mn,Fe,Cu,Zn
+id,soil,sample,rep,B,Mg,P,S,K,Ca,Mn,Fe,Cu,Zn
 1,coloma,1,1,NA,NA,NA,NA,high,high,high,high,NA,optimum
 2,coloma,2,1,NA,high,NA,NA,high,high,high,high,NA,optimum
 3,coloma,2,2,NA,high,NA,NA,high,high,high,high,NA,high
