@@ -5,8 +5,8 @@ import openpyxl
 # -------------------------------------------------------------------------------------------------------------
 ## 1. Import dataframe
 
-# Import dataframe from Soil and Plant database - Master2.xlsx
-corn_v0 = pd.read_excel('plant_etl/Soil and Plant database - Master2.xlsx', sheet_name=3, header=1)
+# Import dataframe from main_dataset.xlsx
+corn_v0 = pd.read_excel('main_dataset.xlsx', sheet_name = 3, header = 1)
 
 # Remove non-useful columns
 corn_v0.drop(corn_v0.columns[2:33], axis=1, inplace=True)
@@ -75,14 +75,14 @@ extracted_columns = corn_filtered[columns_to_extract] # corn_filtered was define
 corn_df = pd.concat([corn_df, extracted_columns], axis=1)
 
 # Save dataframe as corn_df_v1 (first version)
-corn_df.to_csv('plant_etl/corn_df_v1.csv', index=False)
+corn_df.to_csv('corn_df_v1.csv', index=False)
 
 # -------------------------------------------------------------------------------------------------------------
 # ---------------------------------------------------break-----------------------------------------------------
 ## 5. N, C, and C/N ratio extraction from Elementar sheet.
 
-# Import dataframe from Soil and Plant database - Master2.xlsx
-elementar_v0 = pd.read_excel('plant_etl/Soil and Plant database - Master2.xlsx', sheet_name=6, header=1)
+# Import dataframe from main_dataset.xlsx
+elementar_v0 = pd.read_excel('main_dataset.xlsx', sheet_name=6, header=1)
 
 # Dictionary with old and new column names
 rename_elementar_columns = {
@@ -148,7 +148,7 @@ elementar_df['C'] = pd.to_numeric(elementar_df['C'], errors='coerce')
 elementar_df['C/N'] = pd.to_numeric(elementar_df['C/N'], errors='coerce')
 
 # Save dataframe as elementar_df_v1 (first version)
-elementar_df.to_csv('plant_etl/elementar_df_v1.csv', index=False)
+elementar_df.to_csv('elementar_df_v1.csv', index=False)
 
 # -------------------------------------------------------------------------------------------------------------
 ## 9. Calculate the average of each sample.
@@ -161,7 +161,7 @@ averages_df = elementar_df[columns_to_group].groupby('sample').mean().reset_inde
 averages_df.index = averages_df.index + 1
 
 # Save dataframe as averages_df_v1 (first version)
-averages_df.to_csv('plant_etl/averages_df_v1.csv', index=False)
+averages_df.to_csv('averages_df_v1.csv', index=False)
 
 # -------------------------------------------------------------------------------------------------------------
 # ---------------------------------------------------break-----------------------------------------------------
@@ -172,4 +172,4 @@ averages_df.to_csv('plant_etl/averages_df_v1.csv', index=False)
 corn_df = corn_df.merge(averages_df, on='sample', how='left')
 
 # Save dataframe as corn_df_v2 (second version)
-corn_df.to_csv('plant_etl/corn_df_v2.csv', index=False)
+corn_df.to_csv('corn_df_v2.csv', index=False)
