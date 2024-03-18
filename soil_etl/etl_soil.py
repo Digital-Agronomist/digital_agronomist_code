@@ -287,7 +287,7 @@ for id, row in soil_icp_df.iterrows():
     new_row = [new_id] + list(row[1:4])
 
     # Determine soil type
-    soil_name = row[1]
+    soil_name = row.iloc[1]
     soil_type = soil_types_df[soil_types_df['soil'] == soil_name]['type'].iloc[0]
 
     # Select the appropriate nutrient range table
@@ -300,8 +300,8 @@ for id, row in soil_icp_df.iterrows():
         if element_value == 0:  # Check if the value is zero
             category = 'NA'  # Assign None (which will be NULL in CSV)
         else:
-            lower_limit = float(nutrient_range_df[nutrient_range_df['limit'] == 'inferior'][element])
-            upper_limit = float(nutrient_range_df[nutrient_range_df['limit'] == 'superior'][element])
+            lower_limit = float(nutrient_range_df[nutrient_range_df['limit'] == 'inferior'][element].iloc[0])
+            upper_limit = float(nutrient_range_df[nutrient_range_df['limit'] == 'superior'][element].iloc[0])
 
             if element_value < lower_limit:
                 category = 'low'
