@@ -77,8 +77,6 @@ corn_df = pd.concat([corn_df, extracted_columns], axis=1)
 # Save dataframe as corn_df_v1 (first version)
 corn_df.to_csv('corn_df_v1.csv', index=False)
 
-# -------------------------------------------------------------------------------------------------------------
-# ---------------------------------------------------break-----------------------------------------------------
 ## 5. N, C, and C/N ratio extraction from Elementar sheet.
 
 # Import dataframe from main_dataset.xlsx
@@ -161,7 +159,7 @@ averages_df = elementar_df[columns_to_group].groupby('sample').mean().reset_inde
 averages_df.index = averages_df.index + 1
 
 # Save dataframe as averages_df_v1 (first version)
-averages_df.to_csv('averages_df_v1.csv', index=False)
+averages_df.to_csv('averages_df_v1.csv', index = False)
 
 # -------------------------------------------------------------------------------------------------------------
 # ---------------------------------------------------break-----------------------------------------------------
@@ -169,7 +167,13 @@ averages_df.to_csv('averages_df_v1.csv', index=False)
 
 # Merging the dataframes on 'sample' using a left join
 # This will add the average values to each corresponding sample in corn_df
-corn_df = corn_df.merge(averages_df, on='sample', how='left')
+corn_df = corn_df.merge(averages_df, on = 'sample', how = 'left')
 
 # Save dataframe as corn_df_v2 (second version)
-corn_df.to_csv('corn_df_v2.csv', index=False)
+corn_df.to_csv('corn_df_v2.csv', index = False)
+
+# -------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------break-----------------------------------------------------
+## 11. Replace negative values with zeros.
+corn_df = corn_df.mask(corn_df < 0, 0)
+corn_df.to_csv('corn_df.csv', index = False)
