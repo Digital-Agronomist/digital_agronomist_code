@@ -10,7 +10,13 @@ openpyxl==3.1.2
 mariadb==1.1.10
 Pillow
 fancyimpute==0.7.0
+<<<<<<< Updated upstream
 torch==2.2.1
 torchaudio==2.2.1+cuda
 torchvision==0.17.1+cpu
+=======
+torch==2.2.1+cpu
+torchaudio==2.2.1+cuda
+torchvision==0.17.1
+>>>>>>> Stashed changes
 
