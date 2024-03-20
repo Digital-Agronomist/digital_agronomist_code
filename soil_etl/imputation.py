@@ -217,10 +217,10 @@ plt.show()
 # ---------------------------------------------------------------------------------------
 ## 2. Correlation analysis
 
-# Calcular la matriz de correlación original
+# Calculate the original correlation matrix
 correlation_original = soil_mix_cleaned.corr()
 
-# Generar los diagramas de correlación para cada método de imputación
+# Generate correlation diagrams for each imputation method
 for label, df in dataframes.items():
     correlation_imputed = df.corr()
     plt.figure(figsize=(10, 8))
@@ -233,24 +233,24 @@ for label, df in dataframes.items():
 # between the original correlations and the correlations after imputation.
 # Graphically, the best method is between: KNN, NN y MICE.
 
-# Calcular y guardar las matrices de correlación utilizando un ciclo
+# Calculate and save correlation matrices
 for label, df in dataframes.items():
     correlation = df.corr()
-    filepath = f'/home/camilo13/Projects/digital_agronomist_code/soil_etl/files/imputation/correlation_{label}.csv'
+    filepath = f'soil_etl/files/imputation/correlation_{label}.csv'
     correlation.to_csv(filepath)
 
-# Diccionario para almacenar las sumas de diferencias absolutas
+# Dictionary to store the sums of absolute differences
 sum_abs_differences = {}
 
 for label, df in dataframes.items():
-    # Calcular la matriz de correlación para el DataFrame imputado
+    # Calculate correlation matrix for imputed DataFrame
     correlation_imputed = df.corr()
-    # Calcular la diferencia absoluta entre la matriz original y la imputada
+    # Calculate the absolute difference between the original and the imputed matrix
     abs_difference = np.abs(correlation_original - correlation_imputed)
-    # Sumar todas las diferencias absolutas para obtener una medida de discrepancia
+    # Add all absolute differences to obtain a discrepancy measure
     sum_abs_differences[label] = np.sum(abs_difference.values)
 
-# Encontrar el método con la menor suma de diferencias absolutas
+# Find the method with the smallest sum of absolute differences
 best_method = min(sum_abs_differences, key=sum_abs_differences.get)
 
 print("Suma de diferencias absolutas por método:", sum_abs_differences)
