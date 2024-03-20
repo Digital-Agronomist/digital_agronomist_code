@@ -11,6 +11,6 @@ mariadb==1.1.10
 Pillow
 fancyimpute==0.7.0
 torch==2.2.1
-torchaudio==2.2.1+cuda
+torchaudio==2.2.1+cpu
 torchvision==0.17.1+cpu
 
