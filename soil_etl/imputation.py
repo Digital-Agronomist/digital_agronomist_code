@@ -25,8 +25,6 @@ import torch.nn as nn
 import torch.optim as optim
 # For SVD
 from fancyimpute import SoftImpute
-# For Matrix Factorization
-from fancyimpute import MatrixFactorization
 
 # ---------------------------------------------------------------------------------------
 ## 1. Import and transform dataframe 
@@ -97,6 +95,12 @@ print(soil_imputed_mice)
 ## 7. Imputation using Neural Network
 
 # Step 1: Data Preparation
+
+# Set the seed
+seed_value = 5
+torch.manual_seed(seed_value)
+np.random.seed(seed_value)
+
 # Data normalization (example with MinMaxScaler to keep data between 0 and 1)
 scaler2 = MinMaxScaler()
 soil_mix_scaled2 = soil_mix_cleaned.copy()
@@ -172,9 +176,24 @@ print(soil_imputed_NN)
 
 # ---------------------------------------------------------------------------------------
 ## 8. Imputation using Singular Value Decomposition (SVD)
+
+# Set the seed
+np.random.seed(6)
+
+# Imputation
 soil_imputed_svd = SoftImpute().fit_transform(soil_mix_cleaned)
 soil_imputed_svd = pd.DataFrame(soil_imputed_svd, columns = soil_mix_cleaned.columns)
 print(soil_imputed_svd)
+
+# ---------------------------------------------------------------------------------------
+## 9. Save imputed datasets
+# soil_imputed_EM.to_csv('files/imputation/soil_imputed_EM.csv', index = False)
+# soil_imputed_KNN.to_csv('files/imputation/soil_imputed_KNN.csv', index = False)
+# soil_imputed_linear.to_csv('files/imputation/soil_imputed_linear.csv', index = False)
+# soil_imputed_mice.to_csv('files/imputation/soil_imputed_mice.csv', index = False)
+# soil_imputed_NN.to_csv('files/imputation/soil_imputed_NN.csv', index = False)
+# soil_imputed_rf.to_csv('files/imputation/soil_imputed_rf.csv', index = False)
+# soil_imputed_svd.to_csv('files/imputation/soil_imputed_svd.csv', index = False)
 
 # ---------------------------------------------------------------------------------------
 # -----------------------------------------break----------------------------------------------
@@ -212,7 +231,7 @@ plt.legend()
 plt.title('Combined Z-Score Distributions of All Variables')
 plt.show()
 
-##### Apparently the best is MICE, although it is difficult to say
+##### Apparently the best is between SVD and NN, although it is difficult to say
 
 # ---------------------------------------------------------------------------------------
 ## 2. Correlation analysis
@@ -231,7 +250,6 @@ for label, df in dataframes.items():
 # Conclusion: When evaluating the graphs, a good imputation method would have most cells 
 # close to zero (neutral color on the graph), indicating that there is not much difference 
 # between the original correlations and the correlations after imputation.
-# Graphically, the best method is between: KNN, NN y MICE.
 
 # Calculate and save correlation matrices
 for label, df in dataframes.items():
@@ -255,4 +273,3 @@ best_method = min(sum_abs_differences, key=sum_abs_differences.get)
 
 print("Suma de diferencias absolutas por método:", sum_abs_differences)
 print("El mejor método de imputación es:", best_method, "con una suma de diferencias de:", sum_abs_differences[best_method])
-
