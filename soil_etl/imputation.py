@@ -1,9 +1,5 @@
 import pandas as pd
 import numpy as np
-from sklearn.metrics import mean_squared_error, mean_absolute_error
-import matplotlib.pyplot as plt
-import seaborn as sns
-from scipy.stats import zscore
 
 # For Expectation-Maximization
 from sklearn.experimental import enable_iterative_imputer
@@ -25,6 +21,12 @@ import torch.nn as nn
 import torch.optim as optim
 # For SVD
 from fancyimpute import SoftImpute
+# Validation
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.stats import zscore
 
 # ---------------------------------------------------------------------------------------
 ## 1. Import and transform dataframe 
@@ -242,8 +244,8 @@ correlation_original = soil_mix_cleaned.corr()
 # Generate correlation diagrams for each imputation method
 for label, df in dataframes.items():
     correlation_imputed = df.corr()
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(correlation_original - correlation_imputed, cmap='coolwarm', center=0)
+    plt.figure(figsize = (10, 8))
+    sns.heatmap(correlation_original - correlation_imputed, cmap = 'coolwarm', center=0)
     plt.title(f'Differences in Correlation for {label} Imputation')
     plt.show()
 
@@ -269,7 +271,29 @@ for label, df in dataframes.items():
     sum_abs_differences[label] = np.sum(abs_difference.values)
 
 # Find the method with the smallest sum of absolute differences
-best_method = min(sum_abs_differences, key=sum_abs_differences.get)
+best_method = min(sum_abs_differences, key = sum_abs_differences.get)
 
 print("Suma de diferencias absolutas por método:", sum_abs_differences)
 print("El mejor método de imputación es:", best_method, "con una suma de diferencias de:", sum_abs_differences[best_method])
+
+# ---------------------------------------------------------------------------------------
+## 3. Validation by comparing with a complete subset
+
+# Extract subset without missing values
+complete_cases = soil_mix_cleaned.dropna()
+print(complete_cases)
+
+# Iterar sobre cada columna del DataFrame completo para generar los gráficos
+for column in complete_cases.columns:
+    plt.figure(figsize=(10, 6))
+    # Graficar la distribución del subconjunto completo para la columna actual
+    sns.kdeplot(complete_cases[column], label='Complete Cases', linestyle='--')
+    # Graficar la distribución de la columna para cada método de imputación
+    for label, df in dataframes.items():
+        sns.kdeplot(df[column], label=f'Imputed with {label}')
+    plt.title(f'Distribution Comparison for {column}')
+    plt.legend()
+    plt.show()
+
+# ---------------------------------------------------------------------------------------
+## 4. Validation using predictive models
