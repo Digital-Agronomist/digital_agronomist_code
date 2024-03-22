@@ -1,12 +1,20 @@
 import pandas as pd
 import numpy as np
-
+# Exploring missing data
+import missingno as msno
+from statsmodels.multivariate.manova import MANOVA
+from sklearn.linear_model import LogisticRegression
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import log_loss
+from scipy.stats import shapiro
 # For Expectation-Maximization
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
+from sklearn.preprocessing import OneHotEncoder
 # For K-Nearest Neighbors
 from sklearn.impute import KNNImputer
 from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
 # For Linea Regression
 from sklearn.linear_model import LinearRegression
 # For Random Forest
@@ -29,19 +37,120 @@ import seaborn as sns
 from scipy.stats import zscore
 
 # ---------------------------------------------------------------------------------------
-## 1. Import and transform dataframe 
-
+## 0. Import and transform dataframe 
 soil_mix_df_final = pd.read_csv('soil_mix_df_final.csv')
 
-# Delete the first 3 columns that are not necessary
-soil_mix_cleaned = soil_mix_df_final.drop(['soil', 'sample', 'rep'], axis = 1)
+# Delete columns that are not necessary
+soil_mix_cleaned = soil_mix_df_final.drop(['soil','sample', 'rep'], axis = 1)
+soil_mix_cleaned2 = soil_mix_df_final.drop(['sample', 'rep'], axis = 1)
 
 # Replace zeros with NaN for imputation
 soil_mix_cleaned.replace(0, np.nan, inplace = True)
-print(soil_mix_cleaned)
+soil_mix_cleaned2.replace(0, np.nan, inplace = True)
+
+# Extract subset without missing values
+complete_cases = soil_mix_cleaned.dropna()
+complete_cases2 = soil_mix_cleaned2.dropna()
+
+# Perform MANOVA to confirm if there is a relationship between the variable 'soil' 
+# and other variables
+maov = MANOVA.from_formula('B + Mg + P + S + K + Ca + Mn + Fe + Cu + Zn ~ soil', data = complete_cases2)
+print(maov.mv_test())
+
+# According to the result, there is a significant relationship between the "soil" variable 
+# and the nutrient variables in the dataframe of complete cases 
 
 # ---------------------------------------------------------------------------------------
-## 2. Imputation using Expectation-Maximization (EM) 
+# -----------------------------------------break-----------------------------------------
+# ----------------------------------Exploring missin data--------------------------------
+## 1. Graphic exploring missing data
+
+# Missing data matrix
+msno.matrix(soil_mix_cleaned2)
+plt.title('Missing data matrix')
+plt.show()
+
+# ---------------------------------------------------------------------------------------
+## 2. Analysis of the Nature of Missing Data
+
+# Simplify the problem by dealing with binary data for missing or non-missing
+df_missing = soil_mix_cleaned2.isnull().astype(int)
+
+# List to save the results of logistic regressions
+regression_results = []
+
+# Iterate over each column to treat it as the dependent variable in a logistic regression
+for col in df_missing.columns:
+    # Prepare the data set for regression, excluding the current column
+    X = df_missing.drop(col, axis=1)
+    y = df_missing[col]
+    
+    # Ensure that we are not using an empty column (no missing values)
+    if y.sum() == 0:
+        continue
+    
+    # Impute missing values in X for regression with the mean (this is just so we can fit the model)
+    imp = SimpleImputer(missing_values=1, strategy='mean')
+    X_imputed = imp.fit_transform(X)
+    
+    # Fit logistic regression
+    model = LogisticRegression(solver='liblinear')
+    model.fit(X_imputed, y)
+    
+    # Calculate log loss
+    y_pred = model.predict_proba(X_imputed)
+    loss = log_loss(y, y_pred)
+    
+    # Save the results
+    regression_results.append((col, loss))
+
+# Print the results
+for result in regression_results:
+    print(f'Variable: {result[0]}, Log Loss: {result[1]}')
+
+# Variables like P and Cu, with very low log losses 
+# (0.013690905931761721 and 0.0519370894042759, respectively), could suggest that 
+# the patterns of missing data in these variables are more clearly related to the other 
+# variables in your data set.
+
+# Variables such as B and S, with relatively high log losses 
+# (0.6622881367686035 and 0.6779959105580132), could suggest that the patterns of 
+# missing data in these variables are less predictable based on the other variables, 
+# which could indicate MCAR data or simply reflect a poor fit of the model.
+
+# ---------------------------------------------------------------------------------------
+## 3. Percentage of missing values
+missing_percentage = soil_mix_cleaned2.isnull().mean() * 100
+print(missing_percentage)
+
+# ---------------------------------------------------------------------------------------
+## 4. Distribution analysis   
+for column in soil_mix_cleaned.columns:
+    if soil_mix_cleaned[column].isna().sum() < len(soil_mix_cleaned) * 0.65:  # With this threshold all variables can be included
+        # Histogram
+        plt.figure(figsize=(6, 4))
+        sns.histplot(soil_mix_cleaned[column].dropna(), kde=True)
+        plt.title(f'Histograma de {column}')
+        plt.show()
+
+        # Shapiro-Wilk test
+        stat, p = shapiro(soil_mix_cleaned[column].dropna())
+        print(f'Prueba de Shapiro-Wilk para {column}: Estadístico={stat}, p-valor={p}')
+
+# None of the variables evaluated follow a normal distribution based on the p-values 
+# of the Shapiro-Wilk test. This is important because it affects the choice of statistical 
+# methods for subsequent analysis. Many statistical tests and models assume normality in 
+# the data. Non-normality may require that nonparametric techniques be used or that the 
+# data be transformed to approximate a normal distribution before analysis.
+
+# These results also inform how to address imputation of missing data. For example, 
+# imputation by the mean would not be appropriate for data that is not normal, since 
+# the mean is sensitive to skewed data and outliers.
+
+# ---------------------------------------------------------------------------------------
+# -----------------------------------------break-----------------------------------------
+# -------------------------Imputation only with numerical values-------------------------
+## 1. Imputation using Expectation-Maximization (EM) 
 
 # EM using sklearn's IterativeImputer, considering NAs now as NaN
 imputer = IterativeImputer(max_iter = 10, random_state = 1)
@@ -50,7 +159,7 @@ soil_imputed_EM = pd.DataFrame(soil_imputed_EM, columns = soil_mix_cleaned.colum
 print(soil_imputed_EM)
 
 # ---------------------------------------------------------------------------------------
-## 3. Imputation using K-Nearest Neighbors (KNN) 
+## 2. Imputation using K-Nearest Neighbors (KNN) 
 
 # It is advisable to standardize data for KNN
 scaler = StandardScaler()
@@ -198,7 +307,86 @@ print(soil_imputed_svd)
 # soil_imputed_svd.to_csv('files/imputation/soil_imputed_svd.csv', index = False)
 
 # ---------------------------------------------------------------------------------------
-# -----------------------------------------break----------------------------------------------
+# -----------------------------------------break-----------------------------------------
+# --------------------------Imputation only with 'soil' column---------------------------
+
+## 0. Preprocessing
+numerical_variables = soil_mix_cleaned2.select_dtypes(include = [np.number])
+categorical_variables = soil_mix_cleaned2.select_dtypes(exclude = [np.number])
+
+# Apply One-Hot Encoding to Categorical Column
+encoder = OneHotEncoder(sparse = False, handle_unknown = 'ignore')
+categorical_variables_encoded = encoder.fit_transform(categorical_variables)
+
+# Join the coded numerical and categorical variables again
+data_for_imputation = np.hstack([numerical_variables, categorical_variables_encoded])
+
+# ---------------------------------------------------------------------------------------
+## 1. Imputation using Expectation-Maximization (EM)
+
+# Apply EM imputation
+imputer = IterativeImputer(max_iter = 10, random_state = 1)
+data_imputed = imputer.fit_transform(data_for_imputation)
+
+# Convert back to DataFrame
+columns = list(numerical_variables.columns) + list(encoder.get_feature_names_out(categorical_variables.columns))
+soil_imputed_EM2 = pd.DataFrame(data_imputed, columns = columns)
+
+# List of One-Hot columns coded for the variable 'soil'
+one_hot_columns = [col for col in soil_imputed_EM2.columns if col.startswith('soil_')]
+
+# Convert One-Hot columns back to a categorical column
+# Identify the dummy column with the maximum value in each row (predicted category)
+soil_imputed_EM2['soil_predicted'] = soil_imputed_EM2[one_hot_columns].idxmax(axis = 1)
+
+# Extract original category name from One-Hot column names
+soil_imputed_EM2['soil_predicted'] = soil_imputed_EM2['soil_predicted'].apply(lambda x: x.split('_')[1])
+
+# 'soil_predicted' now contains the 'soil' categories reconstructed after imputation
+soil_imputed_EM2 = soil_imputed_EM2.drop(columns = one_hot_columns)
+
+# Rename 'soil_predicted' column to 'soil'
+soil_imputed_EM2.rename(columns={'soil_predicted': 'soil'}, inplace = True)
+
+# Next, we want to move the 'soil' column to the beginning of the DataFrame
+# We create a list of the columns, putting 'soil' at the beginning
+columns = ['soil'] + [col for col in soil_imputed_EM2.columns if col != 'soil']
+
+# Reorder the DataFrame to reflect this new column order
+soil_imputed_EM2 = soil_imputed_EM2[columns]
+print(soil_imputed_EM2)
+
+# ---------------------------------------------------------------------------------------
+## 2. Imputation using K-Nearest Neighbors (KNN) 
+
+# Standardization and KNN Imputation as a pipeline
+pipeline = Pipeline(steps = [('scale', StandardScaler()), 
+                            ('impute', KNNImputer(n_neighbors = 5, weights = "uniform"))])
+
+# Apply the pipeline to the combined set
+data_imputed_scaled = pipeline.fit_transform(data_for_imputation)
+
+# Reverse standardization to obtain the imputed data set on its original scale
+scaler = StandardScaler().fit(numerical_variables)  # Adjust the scaler to numeric variables only
+data_imputed = scaler.inverse_transform(data_imputed_scaled[:, :len(numerical_variables.columns)])  # Reverse standardization only in the numerical parts
+
+# Retrieve categorical data from the imputed and scaled set (without needing to revert standardization on categorical data)
+data_categorical_imputed = data_imputed_scaled[:, len(numerical_variables.columns):]
+
+# Convert One-Hot Encoding Back to Categorical Labels
+categorical_reversed = encoder.inverse_transform(data_categorical_imputed)
+
+# Create DataFrames from numpy arrays to facilitate concatenation
+df_numericas_imputed = pd.DataFrame(data_imputed, columns = numerical_variables.columns)
+df_categorical_reversed = pd.DataFrame(categorical_reversed, columns = categorical_variables.columns)
+
+# Concatenate the imputed numerical variables and the reversed categorical variables
+soil_imputed_KNN2 = pd.concat([df_categorical_reversed.reset_index(drop = True), df_numericas_imputed.reset_index(drop = True)], axis=1)
+print(soil_imputed_KNN2)
+
+
+# ---------------------------------------------------------------------------------------
+# -----------------------------------------break-----------------------------------------
 # ----------------------------------Imputation validation--------------------------------
 
 ## 1. Comparison of distributions
@@ -279,10 +467,6 @@ print("El mejor método de imputación es:", best_method, "con una suma de difer
 # ---------------------------------------------------------------------------------------
 ## 3. Validation by comparing with a complete subset
 
-# Extract subset without missing values
-complete_cases = soil_mix_cleaned.dropna()
-print(complete_cases)
-
 # Iterar sobre cada columna del DataFrame completo para generar los gráficos
 for column in complete_cases.columns:
     plt.figure(figsize=(10, 6))
@@ -294,6 +478,3 @@ for column in complete_cases.columns:
     plt.title(f'Distribution Comparison for {column}')
     plt.legend()
     plt.show()
-
-# ---------------------------------------------------------------------------------------
-## 4. Validation using predictive models
