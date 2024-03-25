@@ -130,12 +130,12 @@ for column in soil_mix_cleaned.columns:
         # Histogram
         plt.figure(figsize=(6, 4))
         sns.histplot(soil_mix_cleaned[column].dropna(), kde=True)
-        plt.title(f'Histograma de {column}')
+        plt.title(f'{column} histogram')
         plt.show()
 
         # Shapiro-Wilk test
         stat, p = shapiro(soil_mix_cleaned[column].dropna())
-        print(f'Prueba de Shapiro-Wilk para {column}: Estadístico={stat}, p-valor={p}')
+        print(f'Shapiro-Wilk test for {column}: Statistical={stat}, p-value={p}')
 
 # None of the variables evaluated follow a normal distribution based on the p-values 
 # of the Shapiro-Wilk test. This is important because it affects the choice of statistical 
