@@ -174,7 +174,7 @@ soil_imputed_KNN = pd.DataFrame(scaler.inverse_transform(soil_imputed_KNN), colu
 print(soil_imputed_KNN)
 
 # ---------------------------------------------------------------------------------------
-## 4. Imputation using Linear Regression
+## 3. Imputation using Linear Regression
 
 imputer_linear = IterativeImputer(estimator=LinearRegression(), max_iter = 10, random_state = 2)
 soil_imputed_linear = imputer_linear.fit_transform(soil_mix_cleaned)
@@ -184,7 +184,7 @@ soil_imputed_linear = pd.DataFrame(soil_imputed_linear, columns = soil_mix_clean
 print(soil_imputed_linear)
 
 # ---------------------------------------------------------------------------------------
-## 5. Imputation using Random Forest Regression
+## 4. Imputation using Random Forest Regression
 
 imputer_rf = IterativeImputer(estimator = RandomForestRegressor(n_estimators = 100, random_state = 3), max_iter=10, random_state=0)
 soil_imputed_rf = imputer_rf.fit_transform(soil_mix_cleaned)
@@ -194,7 +194,7 @@ soil_imputed_rf = pd.DataFrame(soil_imputed_rf, columns = soil_mix_cleaned.colum
 print(soil_imputed_rf)
 
 # ---------------------------------------------------------------------------------------
-## 6. Imputation using Multiple Imputation by Chained Equations (MICE)
+## 5. Imputation using Multiple Imputation by Chained Equations (MICE)
 
 # MICE imputation with a BayesianRidge model as an estimator
 imputer_mice = IterativeImputer(estimator = BayesianRidge(), max_iter = 10, random_state = 4)
@@ -203,7 +203,7 @@ soil_imputed_mice = pd.DataFrame(soil_imputed_mice, columns = soil_mix_cleaned.c
 print(soil_imputed_mice)
 
 # ---------------------------------------------------------------------------------------
-## 7. Imputation using Neural Network
+## 6. Imputation using Neural Network
 
 # Step 1: Data Preparation
 
@@ -286,7 +286,7 @@ for column in soil_mix_cleaned.columns:
 print(soil_imputed_NN)
 
 # ---------------------------------------------------------------------------------------
-## 8. Imputation using Singular Value Decomposition (SVD)
+## 7. Imputation using Singular Value Decomposition (SVD)
 
 # Set the seed
 np.random.seed(6)
@@ -297,7 +297,7 @@ soil_imputed_svd = pd.DataFrame(soil_imputed_svd, columns = soil_mix_cleaned.col
 print(soil_imputed_svd)
 
 # ---------------------------------------------------------------------------------------
-## 9. Save imputed datasets
+## 8. Save imputed datasets
 # soil_imputed_EM.to_csv('files/imputation/soil_imputed_EM.csv', index = False)
 # soil_imputed_KNN.to_csv('files/imputation/soil_imputed_KNN.csv', index = False)
 # soil_imputed_linear.to_csv('files/imputation/soil_imputed_linear.csv', index = False)
@@ -308,7 +308,7 @@ print(soil_imputed_svd)
 
 # ---------------------------------------------------------------------------------------
 # -----------------------------------------break-----------------------------------------
-# --------------------------Imputation only with 'soil' column---------------------------
+# --------------------------Imputation with 'soil' column---------------------------
 
 ## 0. Preprocessing
 numerical_variables = soil_mix_cleaned2.select_dtypes(include = [np.number])
@@ -384,10 +384,224 @@ df_categorical_reversed = pd.DataFrame(categorical_reversed, columns = categoric
 soil_imputed_KNN2 = pd.concat([df_categorical_reversed.reset_index(drop = True), df_numericas_imputed.reset_index(drop = True)], axis=1)
 print(soil_imputed_KNN2)
 
+# ---------------------------------------------------------------------------------------
+## 3. Imputation using Linear Regression
+
+# Configure the iterative imputator to use linearregresion as a estimator
+imputer_linear = IterativeImputer(estimator = LinearRegression(), max_iter = 10, random_state = 2)
+
+# Apply imputation technique
+data_imputed = imputer_linear.fit_transform(data_for_imputation)
+
+# Convert the data accused again to Dataframe
+column_names = numerical_variables.columns.tolist() + list(encoder.get_feature_names_out(categorical_variables.columns))
+soil_imputed_linear2 = pd.DataFrame(data_imputed, columns = column_names)
+
+# Conversion of the one-hot encoding to the original categorical variable "Soil"
+encoded_columns = [col for col in soil_imputed_linear2.columns if col.startswith(categorical_variables.columns[0])]
+
+# Use IDXMAX to convert one-hot encoding again to the categorical label
+soil_imputed_linear2['soil'] = soil_imputed_linear2[encoded_columns].idxmax(axis = 1)
+soil_imputed_linear2['soil'] = soil_imputed_linear2['soil'].apply(lambda x: x.split('_')[-1])
+
+# Delete original "Soil" one-hot columns
+soil_imputed_linear2.drop(columns = encoded_columns, inplace = True)
+
+# Move the 'Soil' column at the beginning of Dataframe
+col_order = ['soil'] + [col for col in soil_imputed_linear2.columns if col != 'soil']
+soil_imputed_linear2 = soil_imputed_linear2[col_order]
+
+print(soil_imputed_linear2)
+
+# ---------------------------------------------------------------------------------------
+## 4. Imputation using Random Forest Regression
+
+# Imputation using IterativeImputer with Random Forest Regressor
+imputer_rf = IterativeImputer(estimator = RandomForestRegressor(n_estimators = 100, random_state = 3), max_iter = 10, random_state = 3)
+soil_imputed_rf2 = imputer_rf.fit_transform(data_for_imputation)
+
+# Convert back to DataFrame. First, separate imputed numerical and categorical encoded parts
+num_imputed_rf2 = soil_imputed_rf2[:, :len(numerical_variables.columns)]
+cat_imputed_encoded_rf2 = soil_imputed_rf2[:, len(numerical_variables.columns):]
+
+# To reverse the One-Hot Encoding, assume each set of encoded columns represents one category and take the index of the max value
+cat_imputed_rf2 = np.argmax(cat_imputed_encoded_rf2, axis = 1)
+
+# Translate these indices back to categorical labels using the categories_ attribute of the OneHotEncoder
+categories = encoder.categories_[0]
+cat_imputed_labels_rf2 = categories[cat_imputed_rf2]
+
+# Create DataFrames from the arrays to facilitate subsequent operations
+df_num_imputed_rf2 = pd.DataFrame(num_imputed_rf2, columns = numerical_variables.columns)
+df_cat_imputed_rf2 = pd.DataFrame(cat_imputed_labels_rf2, columns = categorical_variables.columns)
+
+# Concatenate the imputed numerical and categorical components
+soil_imputed_rf2 = pd.concat([df_cat_imputed_rf2.reset_index(drop = True), df_num_imputed_rf2.reset_index(drop = True)], axis = 1)
+
+# Print the resulting DataFrame
+print(soil_imputed_rf2)
+
+# ---------------------------------------------------------------------------------------
+## 5. Imputation using Multiple Imputation by Chained Equations (MICE)
+
+# MICE imputation with a BayesianRidge model as an estimator
+imputer_mice = IterativeImputer(estimator = BayesianRidge(), max_iter = 10, random_state = 4)
+soil_imputed_mice2 = imputer_mice.fit_transform(data_for_imputation)
+
+# Convert back to DataFrame. First, separate imputed numerical and categorical encoded parts
+num_imputed_mice2 = soil_imputed_mice2[:, :len(numerical_variables.columns)]
+cat_imputed_encoded_mice2 = soil_imputed_mice2[:, len(numerical_variables.columns):]
+
+# To reverse the One-Hot Encoding, assume each set of encoded columns represents one category and take the index of the max value
+cat_imputed_mice2 = np.argmax(cat_imputed_encoded_mice2, axis = 1)
+
+# Translate these indices back to categorical labels using the categories_ attribute of the OneHotEncoder
+categories = encoder.categories_[0]
+cat_imputed_labels_mice2 = categories[cat_imputed_mice2]
+
+# Create DataFrames from the arrays to facilitate subsequent operations
+df_num_imputed_mice2 = pd.DataFrame(num_imputed_mice2, columns = numerical_variables.columns)
+df_cat_imputed_mice2 = pd.DataFrame(cat_imputed_labels_mice2, columns = categorical_variables.columns)
+
+# Concatenate the imputed numerical and categorical components
+soil_imputed_mice2 = pd.concat([df_cat_imputed_mice2.reset_index(drop = True), df_num_imputed_mice2.reset_index(drop = True)], axis = 1)
+
+# Print the resulting DataFrame
+print(soil_imputed_mice2)
+
+# ---------------------------------------------------------------------------------------
+## 6. Imputation using Neural Network
+
+# Set the seed for reproducibility
+seed_value = 5
+torch.manual_seed(seed_value)
+np.random.seed(seed_value)
+
+# Normalize the data (using MinMaxScaler to keep data between 0 and 1)
+scaler = MinMaxScaler()
+numerical_variables_scaled = scaler.fit_transform(numerical_variables)
+
+# Join the normalized numerical and encoded categorical variables again
+data_for_imputation = np.hstack([numerical_variables_scaled, categorical_variables_encoded])
+
+# Convert NaN in numerical variables to 0 for training and create a mask for NaN values
+data_for_imputation[np.isnan(data_for_imputation)] = 0
+mask = ~np.isnan(data_for_imputation)
+
+# Convert to tensors
+data_tensor = torch.tensor(data_for_imputation, dtype=torch.float32)
+mask_tensor = torch.tensor(mask, dtype=torch.float32)
+
+## Definition of the Autoencoder Model
+class Autoencoder(nn.Module):
+    def __init__(self, num_features):
+        super(Autoencoder, self).__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(num_features, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU()
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(64, 128),
+            nn.ReLU(),
+            nn.Linear(128, num_features),
+            nn.Sigmoid()  # Use sigmoid if data is normalized between 0 and 1
+        )
+
+    def forward(self, x):
+        encoded = self.encoder(x)
+        decoded = self.decoder(encoded)
+        return decoded
+
+model = Autoencoder(num_features=data_tensor.shape[1])
+
+## Training the Autoencoder
+criterion = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+epochs = 100
+
+for epoch in range(epochs):
+    optimizer.zero_grad()
+    outputs = model(data_tensor)
+    loss = criterion(outputs * mask_tensor, data_tensor * mask_tensor)  # Calculate loss only on non-NaN data
+    loss.backward()
+    optimizer.step()
+    
+    if epoch % 10 == 0:
+        print(f'Epoch {epoch}, Loss: {loss.item()}')
+
+## Imputation of Missing Data
+
+# Prediction (imputation)
+with torch.no_grad():
+    imputed_data = model(data_tensor).numpy()
+
+# Split imputed data back into numerical and categorical
+num_imputed = imputed_data[:, :len(numerical_variables.columns)]
+cat_imputed_encoded = imputed_data[:, len(numerical_variables.columns):]
+
+# Reverse normalization for numerical variables
+num_imputed_original_scale = scaler.inverse_transform(num_imputed)
+
+# Handling the reverse of One-Hot Encoding for categorical variables and converting back to DataFrame
+# Similar to previous examples, the reverse process needs careful consideration
+
+# Assuming 'soil_imputed_NN2' is set to a copy of 'soil_mix_cleaned2' for versioning
+soil_imputed_NN2 = pd.DataFrame(num_imputed_original_scale, columns = numerical_variables.columns)
+# For categorical, more complex logic is needed to properly reverse One-Hot Encoding and assign categories
+
+print(soil_imputed_NN2)
+
+# ---------------------------------------------------------------------------------------
+## 7. Imputation using Singular Value Decomposition (SVD)
+
+# Set the seed
+np.random.seed(6)
+
+# Normalize the data (using MinMaxScaler to keep data between 0 and 1, if desired)
+scaler = MinMaxScaler()
+numerical_variables_scaled = scaler.fit_transform(numerical_variables)
+
+# Join the normalized numerical and encoded categorical variables again
+data_for_imputation = np.hstack([numerical_variables_scaled, categorical_variables_encoded])
+
+# Imputation using SoftImpute for SVD
+imputed_data = SoftImpute().fit_transform(data_for_imputation)
+
+# Reverse normalization for numerical variables
+num_imputed = imputed_data[:, :len(numerical_variables.columns)]
+num_imputed_original_scale = scaler.inverse_transform(num_imputed)
+
+# Handling the reverse of One-Hot Encoding for categorical variables
+cat_imputed_encoded = imputed_data[:, len(numerical_variables.columns):]
+cat_imputed = np.argmax(cat_imputed_encoded, axis = 1)
+categories = encoder.categories_[0]
+cat_imputed_labels = categories[cat_imputed]
+
+# Creating DataFrames from the arrays to facilitate subsequent operations
+df_num_imputed = pd.DataFrame(num_imputed_original_scale, columns = numerical_variables.columns)
+df_cat_imputed = pd.DataFrame(cat_imputed_labels, columns = categorical_variables.columns)
+
+# Concatenating the imputed numerical and categorical components
+soil_imputed_svd2 = pd.concat([df_cat_imputed.reset_index(drop = True), df_num_imputed.reset_index(drop = True)], axis = 1)
+
+# Print the resulting DataFrame
+print(soil_imputed_svd2)
+
+# ---------------------------------------------------------------------------------------
+## 8. Save imputed datasets
+# soil_imputed_EM2.to_csv('files/imputation/soil_imputed_EM2.csv', index = False)
+# soil_imputed_KNN2.to_csv('files/imputation/soil_imputed_KNN2.csv', index = False)
+# soil_imputed_linear2.to_csv('files/imputation/soil_imputed_linear2.csv', index = False)
+# soil_imputed_mice2.to_csv('files/imputation/soil_imputed_mice2.csv', index = False)
+# soil_imputed_NN2.to_csv('files/imputation/soil_imputed_NN2.csv', index = False)
+# soil_imputed_rf2.to_csv('files/imputation/soil_imputed_rf2.csv', index = False)
+# soil_imputed_svd2.to_csv('files/imputation/soil_imputed_svd2.csv', index = False)
 
 # ---------------------------------------------------------------------------------------
 # -----------------------------------------break-----------------------------------------
-# ----------------------------------Imputation validation--------------------------------
+# ----------------------------------Imputation Evaluation--------------------------------
 
 ## 1. Comparison of distributions
 
