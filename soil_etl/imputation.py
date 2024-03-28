@@ -203,7 +203,7 @@ soil_imputed_mice = pd.DataFrame(soil_imputed_mice, columns = soil_mix_cleaned.c
 print(soil_imputed_mice)
 
 # ---------------------------------------------------------------------------------------
-## 6. Imputation using Neural Network
+## 6. Imputation using Neural Networks
 
 # Step 1: Data Preparation
 
@@ -470,7 +470,7 @@ soil_imputed_mice2 = pd.concat([df_cat_imputed_mice2.reset_index(drop = True), d
 print(soil_imputed_mice2)
 
 # ---------------------------------------------------------------------------------------
-## 6. Imputation using Neural Network
+## 6. Imputation using Neural Networks
 
 # Set the seed for reproducibility
 seed_value = 5
@@ -550,7 +550,7 @@ num_imputed_original_scale = scaler.inverse_transform(num_imputed)
 # Assuming 'soil_imputed_NN2' is set to a copy of 'soil_mix_cleaned2' for versioning
 soil_imputed_NN2 = pd.DataFrame(num_imputed_original_scale, columns = numerical_variables.columns)
 # For categorical, more complex logic is needed to properly reverse One-Hot Encoding and assign categories
-
+soil_imputed_NN2.insert(0, 'soil', soil_imputed_linear2['soil'])
 print(soil_imputed_NN2)
 
 # ---------------------------------------------------------------------------------------
@@ -605,14 +605,30 @@ print(soil_imputed_svd2)
 
 ## 1. Comparison of distributions
 
+# Delete the 'soil' column from the second version of the imputations
+soil_imputed_EM_no_soil = soil_imputed_EM2.drop('soil', axis = 1)
+soil_imputed_KNN_no_soil = soil_imputed_KNN2.drop('soil', axis = 1)
+soil_imputed_LR_no_soil = soil_imputed_linear2.drop('soil', axis = 1)
+soil_imputed_MICE_no_soil = soil_imputed_mice2.drop('soil', axis = 1)
+soil_imputed_NN_no_soil = soil_imputed_NN2.drop('soil', axis = 1)
+soil_imputed_RF_no_soil = soil_imputed_rf2.drop('soil', axis = 1)
+soil_imputed_SVD_no_soil = soil_imputed_svd2.drop('soil', axis = 1)
+
 dataframes = {
     'EM': soil_imputed_EM,
+    'EM2': soil_imputed_EM_no_soil,
     'KNN': soil_imputed_KNN,
+    'KNN2': soil_imputed_KNN_no_soil,
     'LR': soil_imputed_linear,
+    'LR2': soil_imputed_LR_no_soil,
     'MICE': soil_imputed_mice,
+    'MICE2': soil_imputed_MICE_no_soil,
     'NN': soil_imputed_NN,
+    'NN2': soil_imputed_NN_no_soil,
     'RF': soil_imputed_rf,
+    'RF2': soil_imputed_RF_no_soil,
     'SVD': soil_imputed_svd,
+    'SVD2': soil_imputed_SVD_no_soil
 }
 
 # Prepare a DataFrame for the combined Z-scores
